@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_youtube_ui/data.dart';
+import 'package:miniplayer/miniplayer.dart';
 import 'home_screen.dart';
 
 final selectedVideoProvider = StateProvider<Video?>((ref) => null);
@@ -13,6 +14,7 @@ class NavScreen extends StatefulWidget {
 }
 
 class _NavScreenState extends State<NavScreen> {
+  static const double _playerMinHeight = 60.0;
   int _selectedIndex = 0;
 
   final _screens = [
@@ -28,18 +30,50 @@ class _NavScreenState extends State<NavScreen> {
     return Scaffold(
         body: Consumer(builder: (context, watch, _) {
           final selectedVideo = watch(selectedVideoProvider).state;
-          print(selectedVideo);
           return Stack(
-              children: _screens
-                  .asMap()
-                  .map(
-                    (i, screen) => MapEntry(
-                      i,
-                      Offstage(offstage: _selectedIndex != i, child: screen),
+            children: _screens
+                .asMap()
+                .map(
+                  (i, screen) => MapEntry(
+                    i,
+                    Offstage(offstage: _selectedIndex != i, child: screen),
+                  ),
+                )
+                .values
+                .toList()
+                  ..add(
+                    Offstage(
+                      offstage: selectedVideo == null,
+                      child: Miniplayer(
+                        minHeight: _playerMinHeight,
+                        maxHeight: MediaQuery.of(context).size.height,
+                        builder: (height, percentage) {
+                          if (selectedVideo == null)
+                            return const SizedBox.shrink();
+                          return Container(
+                              color: Theme.of(context).scaffoldBackgroundColor,
+                              child: Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      Image.network(selectedVideo.thumbnailUrl,
+                                          height: _playerMinHeight - 4.0,
+                                          width: 120.0,
+                                          fit: BoxFit.cover)
+                                    ],
+                                  ),
+                                  const LinearProgressIndicator(
+                                    value: 0.4,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.red),
+                                  )
+                                ],
+                              ));
+                        },
+                      ),
                     ),
-                  )
-                  .values
-                  .toList());
+                  ),
+          );
         }),
         bottomNavigationBar: BottomNavigationBar(
           type: BottomNavigationBarType.fixed,
